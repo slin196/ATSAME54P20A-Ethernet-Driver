@@ -18,9 +18,6 @@
 #define SWITCH_PRESSED_STATE 1
 
 
-extern volatile uint8 synched;
-extern volatile op_descriptor rx_op_descr_queue[MAX_DESCR_LIST_IDX];
-extern volatile op_descriptor tx_op_descr_queue[MAX_DESCR_LIST_IDX];
 volatile uint8 send = 1;
 volatile uint8 stop = 0;
 extern uint8 tx_complete;
@@ -33,13 +30,6 @@ extern uint8 rx_op_descr_dequeue;
 extern uint8 rx_op_descr_enqueue;*/
 bool ops_finished = false;
 
-//op_descriptor ops[FINISHED_OPS_MAX_IDX];
-//uint16 finished_ops = 0;
-volatile uint16 next_tx_op_idx = 0;
-volatile uint16 next_rx_op_idx = 0;
-volatile uint16 finished_rx_ops = 0;
-volatile uint16 finished_tx_ops = 0;
-extern volatile uint8 tx_op_complete, rx_op_complete;
 
 static void EIC_SW0_User_Handler(uintptr_t context)
 {
@@ -161,9 +151,6 @@ int main ( void )
     for (uint8 i = 0; i<MAX_PACKET_QUEUE_IDX; ++i) {
         memcpy((void*)&tx_frame_buffer[1526*i], (const void*)&as_Pdelay_req_frame, 1514);
     }
-    //ethernet_frame frame = create_ethernet_frame(src_addr, broadcast, 1500, array);
-    //ethernet_frame delay_req_frame = create_ptp_IEEE_1588_Delay_Req_frame(ptp_multicast, src_addr, 0, 4);
-
     GMAC->TI = 8 | (9<<8)|(2<<16); /*[1, p. 581] 8*2 + 9 = 3*8.3333333333333333333333333..........
                                    8.333333333...ns is the period which corresponds to the native CPU frequency of 120Mhz*/
     //while((!synched)||(get_time()<=(10000000000ull))) Service_PTP(); //30000000000ull evtl. noch als makro
@@ -175,54 +162,13 @@ int main ( void )
     uint8 next_frame_idx = 0;
     RESTART:
     while ( true ) {
-        //Service_PTP();
+        Service_PTP();
         curr_time = get_time();
         if (task_1_offset <= curr_time) {
             ethernet_frame* frame = (ethernet_frame*)&tx_frame_buffer[1526*next_frame_idx];
             frame->payload[offset_op_number] = (op_number&0xFF00)>>8;
-            frame->payload[offset_op_number + 1] = op_number & 0xFF;
-            frame->payload[offset_op_number + 2] = 1; //TASKNR*/
-            /*as_Pdelay_req_frame.payload[offset_op_number] = (op_number&0xFF00)>>8;
-            as_Pdelay_req_frame.payload[offset_op_number + 1] = op_number & 0xFF;
-            as_Pdelay_req_frame.payload[offset_op_number + 2] = 1;*/ //TASKNR*/
-            op_res = gmac_send_frame((uint8*)frame, TASK_1_PAYLOAD);
-            if (op_res==4) {
-                LED1_Toggle();
-                tx_op_descr_queue[next_tx_op_idx].flags = 0xFF;
-                //uint32 errorflags = GMAC->TSR;
-            }
-            else if (op_res == 2) {
-                ++op_number;
-                finished_tx_ops = (finished_tx_ops + 1) % MAX_DESCR_LIST_IDX;
-                tx_op_descr_queue[next_tx_op_idx].flags = 0; //TODO: VLL. auch noch bei op_res = 3 setzen
-            } else {
-                tx_op_descr_queue[next_tx_op_idx].flags = (0 << 4) | (0<<7) | (1<<0);
-                next_frame_idx = (next_frame_idx + 1) % MAX_DESCR_LIST_IDX;
-            } //bit 8 marks tx (0) or rx (1) operation
-            tx_op_descr_queue[next_tx_op_idx].op_number = op_number;
-            next_tx_op_idx = (next_tx_op_idx + 1) % MAX_DESCR_LIST_IDX;
+            gmac_send_frame((uint8*)frame, TASK_1_PAYLOAD);
             task_1_offset += TASK_1_PERIOD;
-        }
-        if ((isUARTTxComplete)&&(rx_op_complete||tx_op_complete)) {
-            isUARTTxComplete = 0;
-            op_descriptor op_descr;
-            if (rx_op_complete) {
-                op_descr = rx_op_descr_queue[rx_op_dequeue];
-                rx_op_dequeue = (rx_op_dequeue + 1) % MAX_DESCR_LIST_IDX;
-                --rx_op_complete;
-            }
-            else {
-                op_descr = tx_op_descr_queue[tx_op_dequeue];
-                tx_op_dequeue = (tx_op_dequeue + 1) % MAX_DESCR_LIST_IDX;
-                --tx_op_complete;
-            }//TODO: die ausgabe noch auf weniger bytes bringen
-            //sprintf((char*)uartLocalTxBuffer, "%u %u %u %u %lu %u %lu \r\n",\
-            //which_comp, op_descr.flags, op_descr.op_number, op_descr.TS_MAC.s_low, op_descr.TS_MAC.ns, , rx_op_dequeue);
-            if (tsr_status) sprintf((char*)uartLocalTxBuffer, "HW-Error on Mac Layer TSR status %u \r\n", tsr_status);
-            else sprintf((char*)uartLocalTxBuffer, "%u %u %u %lu %u %lu \r\n",\
-            op_descr.flags, op_descr.op_number, op_descr.TS_MAC.s_low, op_descr.TS_MAC.ns,op_descr.TS_RMII.s_low, op_descr.TS_RMII.ns);//TODO: hier noch das overflow flag hinzufügen
-            DMAC_ChannelTransfer(DMAC_CHANNEL_0, uartLocalTxBuffer, (const void *)&(SERCOM1_REGS->USART_INT.SERCOM_DATA),\
-                            strlen((const char*)uartLocalTxBuffer)); 
         }
         if ((stop)||(curr_time>break_point)) break; //TODO: hier noch durch das timelimit substituieren
     }

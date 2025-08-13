@@ -36,16 +36,6 @@ uint8 tsr_status = 0;
 uint8 free_next = 0;
 uint8 use_next = 0;
 uint8 buffer_space = MAX_DESCR_LIST_IDX;
-extern volatile uint16 next_rx_op_idx;
-extern volatile uint16 next_tx_op_idx;
-extern volatile uint16 finished_rx_ops;
-//extern op_descriptor ops[FINISHED_OPS_MAX_IDX];
-extern volatile uint16 finished_tx_ops;
-extern volatile uint8 ops_finished;
-extern uint16 op_number;
-volatile op_descriptor rx_op_descr_queue[MAX_DESCR_LIST_IDX];
-volatile op_descriptor tx_op_descr_queue[MAX_DESCR_LIST_IDX]; //die länge des array hier vll. noch durch rx- und tx decriptor makros ersetzen
-//op_descriptor finished_ops[FINISHED_OPS_MAX_IDX];
 
 
 void GMAC_Handler() {
@@ -59,7 +49,6 @@ void GMAC_Handler() {
     GMAC->TSR |= GMAC->TSR;
     if ((isr_read & (1<<TCOMP)) || (isr_read & (1<<6))||(isr_read & (1<<11))) {
         //GMAC->NCR |= (1 << THALT);
-        finished_tx_ops = (finished_tx_ops +1) % MAX_DESCR_LIST_IDX;
         ++buffer_space;
         if (buffer_space!=MAX_DESCR_LIST_IDX) {
             if (free_next == (MAX_DESCR_LIST_IDX-1)) GMAC->TBQB = (uintptr_t) &tx_descriptor_list[0];
@@ -67,64 +56,8 @@ void GMAC_Handler() {
             GMAC->NCR |= (1 << THALT);
         }
         free_next = ((free_next + 1) % MAX_DESCR_LIST_IDX); //MAX_DESCR_LIST_IDX
-        ++tx_op_complete;
-        ++op_number;
-    }
-    
-    if (isr_read & (1 << 19)) { //sync_frame received
-        nanoseconds = GMAC->EFRN & 0x3FFFFFFF;  //[1, p. 585]
-        seconds_low = GMAC->EFRSL;
-    }
-    if (isr_read & (1 << 24)) { //Bit 24 ? DRQFT?PTP Delay Request Frame Transmitted
-        tx_op_descr_queue[finished_tx_ops].TS_RMII.ns = GMAC->PEFTN;
-        tx_op_descr_queue[finished_tx_ops].TS_RMII.s_low = GMAC->PEFTSL;
-    }
-    if (isr_read & (1 << 22)) { //Bit 22 ? DRQFT?PTP Delay Request Frame Received
-        rx_op_descr_queue[next_rx_op_idx].TS_RMII.ns = GMAC->PEFRN;
-        rx_op_descr_queue[next_rx_op_idx].TS_RMII.s_low = GMAC->PEFRSL;
-        next_rx_op_idx = (next_rx_op_idx + 1) % MAX_DESCR_LIST_IDX;
     }
     if (isr_read & (1 << RCOMP)) {
-        take_timestamp(&rx_op_descr_queue[finished_rx_ops].TS_MAC);
-        ethernet_frame* rx_frame = (ethernet_frame*) &rx_frame_buffer[rx_descr_idx*1536];
-        if (rx_frame->type_len == 0xF788) {
-            ptp_header* ptpPkt = (ptp_header*) rx_frame->payload;
-            uint8_t messageType = ptpPkt->msgType_trnsSpec & 0xFu;
-            if ((messageType == MSG_SYNC) || (messageType == MSG_FOLLOW_UP)) {
-                ;
-                //handlePtp_v1((uint8_t*)rx_frame, seconds_low, nanoseconds);
-            } else {
-                uint16 rx_op_number = 0;
-                uint8 node_nr = (uint16)rx_frame->payload[sizeof(ptp_header) + 1];
-                rx_op_number |= (uint16)rx_frame->payload[sizeof(ptp_header) + 2] << 8;
-                rx_op_number |= (uint16)rx_frame->payload[sizeof(ptp_header) + 3];
-                uint8 task_nr = (uint16)rx_frame->payload[sizeof(ptp_header) + 4];
-                rx_op_descr_queue[finished_rx_ops].flags = (1<<7) | (node_nr << 4) | (task_nr<<0);
-                rx_op_descr_queue[finished_rx_ops].op_number = rx_op_number;
-                finished_rx_ops = (finished_rx_ops + 1) % MAX_DESCR_LIST_IDX;
-                ++rx_op_complete;
-            }
-        } else {
-            /*uint16 frame_len = rx_descriptor_list[rx_descr_idx].word_1 & 0x1FFF;
-            rx_op_descr_queue[next_rx_op_idx].TS_RMII.s_low = 0;
-            rx_op_descr_queue[next_rx_op_idx].TS_RMII.ns = 0;
-            rx_op_descr_queue[next_rx_op_idx].TS_RMII.ns |= (uint16)rx_frame->payload[frame_len-3];
-            rx_op_descr_queue[next_rx_op_idx].TS_RMII.ns |= (uint16)rx_frame->payload[frame_len-2] << 8;
-            rx_op_descr_queue[next_rx_op_idx].TS_RMII.ns |= (uint16)rx_frame->payload[frame_len-1] << 16;
-            rx_op_descr_queue[next_rx_op_idx].TS_RMII.ns |= (uint16)rx_frame->payload[frame_len]   << 24;
-            uint16 rx_op_number = 0;
-            uint8 node_nr = (uint16)rx_frame->payload[1];
-            rx_op_number |= (uint16)rx_frame->payload[2];
-            rx_op_number |= (uint16)rx_frame->payload[3];
-            uint8 task_nr = (uint16)rx_frame->payload[4];
-            rx_op_descr_queue[next_rx_op_idx].flags = (1<<7) | (node_nr << 4) | (task_nr<<0);
-            rx_op_descr_queue[next_rx_op_idx].op_number = rx_op_number;
-            finished_rx_ops = (finished_rx_ops + 1) % MAX_DESCR_LIST_IDX;
-            next_rx_op_idx = (next_rx_op_idx + 1) % MAX_DESCR_LIST_IDX;
-            ++rx_op_complete;*/
-        }
-        //TODO: HIER NOCH AUF EINEN RX-BUFFER UEBERLAUF CHECKEN und das dann über uart für den versuchsaufbau auch ausgeben,
-        //weiterhin auf hardwarefehler checken
         rx_descriptor_list[rx_descr_idx].word_0 &= ~1; //...bit 0 of word 0 set to 0. //TODO: Das markieren als benutzbar sollte im echtfall erst geschehen wenn das paket
         rx_descriptor_list[rx_descr_idx].word_1 = (uint32) 0; //see also [1, p. 445]  //aus dem buffer entnommen wurde und damit zur verarbeitung zu verfügung steht, d.h. alles
                                           //gemacht wurde/gemacht werden kann was man damit machen kann, erst dann sollte man ein 
@@ -255,7 +188,7 @@ uint8 gmac_config(
 
 void gmac_set_interrupts() {
     //see page 501
-    GMAC->IER |= (1<<6);
+    /*GMAC->IER |= (1<<6);
     GMAC->IER |= (1<<11);
     GMAC->IER |= (1<<TCOMP);
     GMAC->IER |= (1<<20);
@@ -264,7 +197,7 @@ void gmac_set_interrupts() {
     GMAC->IER |= (1<<22);
     GMAC->IER |= (1<<19);
     GMAC->IER |= (1<<24);
-    
+    */
 }
 
 //this function set the mac address of the board
@@ -338,8 +271,6 @@ void take_timestamp(volatile timestamp* messpunkt) {
 }
 
 uint8 gmac_send_frame(uint8 *frame, uint16 length) { 
-
-    take_timestamp(&tx_op_descr_queue[next_tx_op_idx].TS_MAC);
     uint8 op_res = OPERATION_SUCCESS;
     if (length >= (1<<14)) return 1; //length field in 14 bits, see [1, p. 449, Table 24-3]    
     if (buffer_space == 0) return 2;
