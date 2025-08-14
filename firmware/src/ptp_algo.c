@@ -6,7 +6,8 @@
 #include "cmsis_gcc.h"
 #include <string.h>
 #include <stdio.h>
-#include "C:\Users\slin9\Desktop\BA\Project_folder\butten_press_send_1\firmware\src\config\sam_e54_cult\peripheral\dmac\plib_dmac.h"
+#include "same54p20a.h"
+#include "C:\Users\slin9\Desktop\Project_folder\grundprojekt\firmware\src\config\sam_e54_cult\peripheral\dmac\plib_dmac.h"
 
 #define PTP_LOG sprintf
 #define HARDSYNC_THRESHOLD  (1ull<<30) //ns update register has only 29 bits available

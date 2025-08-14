@@ -2,8 +2,6 @@ build/sam_e54_cult/production/_ext/1360937237/ptp_algo.o: \
  ../src/ptp_algo.c ../src/type_definitions.h ../src/ptp.h \
  ../src/ethernet.h ../src/gmac.h \
  ../src/packs/CMSIS/CMSIS/Core/Include/cmsis_gcc.h \
- C:\Users\slin9\Desktop\BA\Project_folder\butten_press_send_1\firmware\src\config\sam_e54_cult\peripheral\dmac\plib_dmac.h \
- ../src/config/sam_e54_cult/device.h \
  ../src/packs/ATSAME54P20A_DFP/same54p20a.h \
  ../src/packs/CMSIS/CMSIS/Core/Include/core_cm4.h \
  ../src/packs/CMSIS/CMSIS/Core/Include/cmsis_version.h \
@@ -111,6 +109,8 @@ build/sam_e54_cult/production/_ext/1360937237/ptp_algo.o: \
  ../src/packs/ATSAME54P20A_DFP/instance/usb.h \
  ../src/packs/ATSAME54P20A_DFP/instance/wdt.h \
  ../src/packs/ATSAME54P20A_DFP/pio/same54p20a.h \
+ C:\Users\slin9\Desktop\Project_folder\grundprojekt\firmware\src\config\sam_e54_cult\peripheral\dmac\plib_dmac.h \
+ ../src/config/sam_e54_cult/device.h \
  ../src/config/sam_e54_cult/device_cache.h \
  ../src/config/sam_e54_cult/device.h \
  ../src/config/sam_e54_cult/toolchain_specifics.h \
@@ -125,10 +125,6 @@ build/sam_e54_cult/production/_ext/1360937237/ptp_algo.o: \
 ../src/gmac.h:
 
 ../src/packs/CMSIS/CMSIS/Core/Include/cmsis_gcc.h:
-
-C:\Users\slin9\Desktop\BA\Project_folder\butten_press_send_1\firmware\src\config\sam_e54_cult\peripheral\dmac\plib_dmac.h:
-
-../src/config/sam_e54_cult/device.h:
 
 ../src/packs/ATSAME54P20A_DFP/same54p20a.h:
 
@@ -343,6 +339,10 @@ C:\Users\slin9\Desktop\BA\Project_folder\butten_press_send_1\firmware\src\config
 ../src/packs/ATSAME54P20A_DFP/instance/wdt.h:
 
 ../src/packs/ATSAME54P20A_DFP/pio/same54p20a.h:
+
+C:\Users\slin9\Desktop\Project_folder\grundprojekt\firmware\src\config\sam_e54_cult\peripheral\dmac\plib_dmac.h:
+
+../src/config/sam_e54_cult/device.h:
 
 ../src/config/sam_e54_cult/device_cache.h:
 

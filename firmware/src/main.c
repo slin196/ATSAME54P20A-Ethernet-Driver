@@ -146,7 +146,7 @@ int main ( void )
     uint8 src_addr[6] = {0x12,0x34,0x56,0x78,0x91,0x12};
     ethernet_frame as_Pdelay_req_frame = create_ptp_802_1as_Pdelay_Req_frame(broadcast, 4);
     uint8 offset = sizeof(ptp_header);
-    as_Pdelay_req_frame.payload[offset]   = NODE_ID; //#ifdefs noch hinzufügen
+    as_Pdelay_req_frame.payload[offset]   = NODE_ID; //#ifdefs noch hinzufï¿½gen
     uint8 offset_op_number = offset + 2;
     for (uint8 i = 0; i<MAX_PACKET_QUEUE_IDX; ++i) {
         memcpy((void*)&tx_frame_buffer[1526*i], (const void*)&as_Pdelay_req_frame, 1514);
@@ -167,7 +167,8 @@ int main ( void )
         if (task_1_offset <= curr_time) {
             ethernet_frame* frame = (ethernet_frame*)&tx_frame_buffer[1526*next_frame_idx];
             frame->payload[offset_op_number] = (op_number&0xFF00)>>8;
-            gmac_send_frame((uint8*)frame, TASK_1_PAYLOAD);
+            op_res = gmac_send_frame((uint8*)frame, TASK_1_PAYLOAD);
+            if (op_res != 2) next_frame_idx = (next_frame_idx + 1) % MAX_DESCR_LIST_IDX;
             task_1_offset += TASK_1_PERIOD;
         }
         if ((stop)||(curr_time>break_point)) break; //TODO: hier noch durch das timelimit substituieren
