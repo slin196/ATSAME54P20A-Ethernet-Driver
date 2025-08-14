@@ -157,17 +157,6 @@ uint8 gmac_config(
         uint8 totime, uint8 burstcount, uint8 bursttimer) //TODO: ganz schön viele argumente, evtl. ist es besser das in ganze
                                                           //durch ein config-struct zu übergeben
 {
-    /*TODO: Clocks
- The GMAC peripheral relies on a system clock from the Main Clock Controller (MCLK) for register
- access and GMAC MCK.*/ //<--finde noch heraus wie du die GMAC MCK konfigurierst, das MLCK - module scheint die clocks für die 
-    //peripherals zu kontrollieren, siehe 159, Figure 15-2, weiterhin 139 GLCK, scheinen die einzigen zwei möglichen quellen zu sein,
-    /* All peripherals are composed of one digital bus interface connected to the APB or AHB bus and
- running from a corresponding clock in the Main Clock domain, and one peripheral core running
- from the peripheral Generic Clock (GCLK).*/ // siehe 134
-    //allerdings scheint es hier nirgenwo eine möglichkeit zu geben, den takt des GMAC zu kontrollieren, siehe Table 14-9
-    // Figure 13-1 auf seite 132 zeigt auch nochmal welche clocks in welche peripherals fließen und welche clocks welcher perihperals
-    // ob wenn ja wie durch MLCK und GLCK gesteuert werden. interessant ist hier auch zu sehen das das GMAC nochmal zwei externe clocks
-    //einfließen
     //TODO: vll noch sachen wie half duplex, full duplex über die argumente im gmac einstellen
     uint8 op_res;
     op_res = mclk_enable_peripheral_clock(GMAC); //enables access to GMAC registers, see [1, pp. 133,176/177, 442, Figure 24-1]

@@ -141,10 +141,9 @@ int main ( void )
     DMAC_ChannelCallbackRegister(DMAC_CHANNEL_0, usartDmaChannelHandler, 0);
     EIC_CallbackRegister(EIC_PIN_0, EIC_SW0_User_Handler, 0);
     EIC_CallbackRegister(EIC_PIN_1, EIC_SW1_User_Handler, 0);
-    uint8 broadcast[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
-    //uint8 ptp_multicast[6] = {0x01, 0x1B, 0x19, 0x00, 0x00, 0x00};
+    //uint8 broadcast[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
     uint8 src_addr[6] = {0x12,0x34,0x56,0x78,0x91,0x12};
-    ethernet_frame as_Pdelay_req_frame = create_ptp_802_1as_Pdelay_Req_frame(broadcast, 4);
+    ethernet_frame as_Pdelay_req_frame = create_ptp_802_1as_Pdelay_Req_frame(src_addr, 4);
     uint8 offset = sizeof(ptp_header);
     as_Pdelay_req_frame.payload[offset]   = NODE_ID; //#ifdefs noch hinzuf�gen
     uint8 offset_op_number = offset + 2;
